@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block title %}Support Dashboard - IT Helpdesk{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0">IT Support Dashboard</h2>
+        <p class="text-muted mb-0">Overview of all support tickets</p>
+    </div>
+    <a href="{% url 'helpdesk:ticket_list' %}" class="btn btn-outline-primary">
+        <i class="bi bi-tickets me-1"></i>View All Tickets
+    </a>
+</div>
+
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase">Total Tickets</div>
+                <div class="fs-3 fw-bold">{{ total_tickets }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card info h-100">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase">Open</div>
+                <div class="fs-3 fw-bold">{{ open_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card h-100" style="border-left-color: #6f42c1;">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase">Assigned</div>
+                <div class="fs-3 fw-bold">{{ assigned_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card warning h-100">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase">In Progress</div>
+                <div class="fs-3 fw-bold">{{ in_progress_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card h-100" style="border-left-color: #fd7e14;">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase">Waiting</div>
+                <div class="fs-3 fw-bold">{{ waiting_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card success h-100">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase">Resolved</div>
+                <div class="fs-3 fw-bold">{{ resolved_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card danger h-100">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase">Critical</div>
+                <div class="fs-3 fw-bold">{{ critical_count }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Tickets -->
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-ticket-detailed me-2"></i>Recent Tickets</h5>
+        <a href="{% url 'helpdesk:ticket_list' %}" class="btn btn-sm btn-outline-primary">
+            View All
+        </a>
+    </div>
+    <div class="card-body p-0">
+        {% if recent_tickets %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Employee</th>
+                        <th>Subject</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Assigned</th>
+                        <th>Created</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in recent_tickets %}
+                    <tr>
+                        <td class="fw-bold">#{{ ticket.id }}</td>
+                        <td>{{ ticket.employee.get_full_name|default:ticket.employee.username }}</td>
+                        <td>{{ ticket.subject|truncatechars:50 }}</td>
+                        <td>
+                            <span class="badge {{ ticket.priority_badge_class }}">
+                                {{ ticket.get_priority_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge {{ ticket.status_badge_class }}">
+                                {{ ticket.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if ticket.assigned_to %}
+                                <span class="small">
+                                    {{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted small">{{ ticket.created_at|date:"M d, Y" }}</td>
+                        <td class="text-end">
+                            <a href="{% url 'helpdesk:ticket_detail' ticket.id %}"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye me-1"></i>View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+            <h5 class="mt-3">No tickets yet</h5>
+            <p class="text-muted">Tickets will appear here when employees create them.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}Server Error - IT Helpdesk{% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+    <h1 class="display-1 text-muted">500</h1>
+    <h3>Server Error</h3>
+    <p class="text-muted">Something went wrong. Please try again later.</p>
+    <a href="{% url 'helpdesk:dashboard' %}" class="btn btn-primary">
+        <i class="bi bi-house me-1"></i>Go to Dashboard
+    </a>
+</div>
+{% endblock %}

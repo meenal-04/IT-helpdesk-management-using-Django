@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}Page Not Found - IT Helpdesk{% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+    <h1 class="display-1 text-muted">404</h1>
+    <h3>Page Not Found</h3>
+    <p class="text-muted">The page you're looking for doesn't exist or has been moved.</p>
+    <a href="{% url 'helpdesk:dashboard' %}" class="btn btn-primary">
+        <i class="bi bi-house me-1"></i>Go to Dashboard
+    </a>
+</div>
+{% endblock %}

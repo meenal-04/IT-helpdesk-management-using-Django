@@ -1,0 +1,415 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Ticket #{{ ticket.id }} - IT Helpdesk{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a href="{% url 'helpdesk:dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'helpdesk:ticket_list' %}">Tickets</a></li>
+        <li class="breadcrumb-item active">#{{ ticket.id }}</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1"><span class="text-muted">Ticket</span> #{{ ticket.id }}</h2>
+        <h4 class="text-muted fw-normal mb-2">{{ ticket.subject }}</h4>
+        <div class="d-flex flex-wrap gap-2">
+            <span class="badge {{ ticket.status_badge_class }}">{{ ticket.get_status_display }}</span>
+            <span class="badge {{ ticket.priority_badge_class }}">{{ ticket.get_priority_display }}</span>
+            {% if ticket.category %}
+            <span class="badge bg-light text-dark border">{{ ticket.category.name }}</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- LEFT -->
+    <div class="col-lg-8">
+
+        <!-- Description -->
+        <div class="card mb-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-file-text me-2"></i>Description</h6>
+                <small class="text-muted">{{ ticket.created_at|date:"M d, Y H:i" }}</small>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <span class="text-muted small">Reported by:</span>
+                    <strong>{{ ticket.employee.get_full_name|default:ticket.employee.username }}</strong>
+                    <span class="text-muted small">(@{{ ticket.employee.username }})</span>
+                </div>
+                <div style="white-space: pre-wrap;">{{ ticket.description }}</div>
+            </div>
+        </div>
+
+        <!-- Attachments -->
+        {% if attachments %}
+        <div class="card mb-3">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-paperclip me-2"></i>Attachments ({{ attachments|length }})</h6>
+            </div>
+            <div class="card-body">
+                {% for att in attachments %}
+                <div class="d-flex justify-content-between align-items-center py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                    <div>
+                        <i class="bi bi-file-earmark me-2"></i>
+                        <a href="{{ att.file.url }}" target="_blank" class="text-decoration-none">
+                            {{ att.file.name|slice:"11:" }}
+                        </a>
+                        <div class="small text-muted">Uploaded {{ att.uploaded_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                    <a href="{{ att.file.url }}" download class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-download"></i>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Resolution summary -->
+        {% if ticket.resolution_summary %}
+        <div class="card mb-3 border-success">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0"><i class="bi bi-check-circle me-2"></i>Resolution Summary</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-0" style="white-space: pre-wrap;">{{ ticket.resolution_summary }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Conversation -->
+        <div class="card mb-3">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-chat-dots me-2"></i>Conversation ({{ replies|length }})</h6>
+            </div>
+            <div class="card-body">
+                {% if replies %}
+                <div class="ticket-timeline">
+                    {% for reply in replies %}
+                    <div class="timeline-item">
+                        <div class="d-flex justify-content-between mb-1">
+                            <strong>
+                                {{ reply.author.get_full_name|default:reply.author.username }}
+                                {% if reply.author == ticket.employee %}
+                                <span class="badge bg-secondary ms-1">Employee</span>
+                                {% else %}
+                                <span class="badge bg-primary ms-1">IT Support</span>
+                                {% endif %}
+                            </strong>
+                            <small class="text-muted">{{ reply.created_at|date:"M d, Y H:i" }}</small>
+                        </div>
+                        <div style="white-space: pre-wrap;">{{ reply.message }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-3">
+                    <i class="bi bi-chat" style="font-size: 2rem;"></i>
+                    <p class="mt-2 mb-0 small">No replies yet.</p>
+                </div>
+                {% endif %}
+
+                {% if can_reply %}
+                <hr>
+                <form method="post" action="{% url 'helpdesk:ticket_reply' ticket.id %}">
+                    {% csrf_token %}
+                    <label class="form-label"><strong>Add a reply</strong></label>
+                    {{ reply_form.message }}
+                    <div class="text-end mt-2">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-send me-1"></i>Send Reply
+                        </button>
+                    </div>
+                </form>
+                {% else %}
+                <div class="alert alert-secondary small mt-3 mb-0">
+                    <i class="bi bi-lock me-1"></i>This ticket is closed. Reopen it to reply.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Internal Notes (support only) -->
+        {% if is_support %}
+        <div class="card mb-3 border-warning">
+            <div class="card-header bg-warning-subtle">
+                <h6 class="mb-0"><i class="bi bi-sticky me-2"></i>Internal Notes (not visible to employee)</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'helpdesk:ticket_add_note' ticket.id %}" class="mb-3">
+                    {% csrf_token %}
+                    {{ note_form.note }}
+                    <div class="text-end mt-2">
+                        <button type="submit" class="btn btn-warning btn-sm">
+                            <i class="bi bi-plus-circle me-1"></i>Add Note
+                        </button>
+                    </div>
+                </form>
+
+                {% if internal_notes %}
+                <div class="list-group list-group-flush">
+                    {% for note in internal_notes %}
+                    <div class="list-group-item px-0">
+                        <div class="d-flex justify-content-between">
+                            <strong class="small">{{ note.author.get_full_name|default:note.author.username }}</strong>
+                            <small class="text-muted">{{ note.created_at|date:"M d, Y H:i" }}</small>
+                        </div>
+                        <div class="small" style="white-space: pre-wrap;">{{ note.note }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted small mb-0">No internal notes yet.</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- AI Assistance (support only) -->
+        {% if is_support %}
+        <div class="card mb-3 border-info">
+            <div class="card-header bg-info-subtle d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-robot me-2"></i>AI Assistance</h6>
+                <form method="post" action="{% url 'helpdesk:ticket_ai_assistance' ticket.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-info">
+                        🤖 Get AI Assistance
+                    </button>
+                </form>
+            </div>
+            <div class="card-body">
+                {% if ai_response %}
+                    {% if ai_response.error %}
+                        <div class="alert alert-warning mb-0">{{ ai_response.error }}</div>
+                    {% else %}
+                        <div class="mb-3">
+                            <h6 class="text-primary">Possible Cause</h6>
+                            <p>{{ ai_response.possible_cause }}</p>
+                        </div>
+                        {% if ai_response.troubleshooting_steps %}
+                        <div class="mb-3">
+                            <h6 class="text-primary">Suggested Troubleshooting</h6>
+                            <ol>
+                                {% for step in ai_response.troubleshooting_steps %}
+                                <li>{{ step }}</li>
+                                {% endfor %}
+                            </ol>
+                        </div>
+                        {% endif %}
+                        {% if ai_response.recommended_action %}
+                        <div class="mb-3">
+                            <h6 class="text-primary">Recommended Action</h6>
+                            <p>{{ ai_response.recommended_action }}</p>
+                        </div>
+                        {% endif %}
+                        {% if ai_response.suggested_priority or ai_response.suggested_category %}
+                        <div class="mb-3">
+                            {% if ai_response.suggested_priority %}
+                            <span class="badge bg-secondary">Suggested Priority: {{ ai_response.suggested_priority }}</span>
+                            {% endif %}
+                            {% if ai_response.suggested_category %}
+                            <span class="badge bg-secondary">Suggested Category: {{ ai_response.suggested_category }}</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% if ai_response.suggested_response %}
+                        <div class="mb-0">
+                            <h6 class="text-primary">Suggested Response</h6>
+                            <textarea class="form-control" rows="4" readonly>{{ ai_response.suggested_response }}</textarea>
+                            <small class="text-muted">Copy this to the reply box above if helpful.</small>
+                        </div>
+                        {% endif %}
+                        <div class="alert alert-warning small mt-3 mb-0">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            <strong>AI Assistance.</strong> Verify before applying. AI does not change ticket data automatically.
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <p class="text-muted small mb-0">
+                        Click the button above for AI-generated suggestions. This is advisory only.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Feedback form (employee, resolved only) -->
+        {% if feedback_form %}
+        <div class="card mb-3 border-success">
+            <div class="card-header bg-success-subtle">
+                <h6 class="mb-0"><i class="bi bi-star me-2"></i>Provide Feedback</h6>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted">
+                    Your ticket was marked resolved. Please rate the support you received.
+                </p>
+                <form method="post" action="{% url 'helpdesk:ticket_feedback' ticket.id %}">
+                    {% csrf_token %}
+                    <div class="mb-2">
+                        <label class="form-label">Rating</label>
+                        {{ feedback_form.rating }}
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Comments (optional)</label>
+                        {{ feedback_form.comment }}
+                    </div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-send me-1"></i>Submit Feedback & Close Ticket
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Employee confirm / reopen -->
+        {% if is_owner and ticket.status == 'resolved' %}
+        <div class="card mb-3">
+            <div class="card-body d-flex gap-2 flex-wrap">
+                <form method="post" action="{% url 'helpdesk:ticket_close' ticket.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-lg me-1"></i>Issue Resolved — Close Ticket
+                    </button>
+                </form>
+                <form method="post" action="{% url 'helpdesk:ticket_reopen' ticket.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Reopen Ticket
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- RIGHT -->
+    <div class="col-lg-4">
+
+        <!-- Info -->
+        <div class="card mb-3">
+            <div class="card-header bg-white"><h6 class="mb-0">Ticket Information</h6></div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr><td class="text-muted">ID</td><td class="text-end fw-bold">#{{ ticket.id }}</td></tr>
+                        <tr><td class="text-muted">Status</td>
+                            <td class="text-end"><span class="badge {{ ticket.status_badge_class }}">{{ ticket.get_status_display }}</span></td></tr>
+                        <tr><td class="text-muted">Priority</td>
+                            <td class="text-end"><span class="badge {{ ticket.priority_badge_class }}">{{ ticket.get_priority_display }}</span></td></tr>
+                        <tr><td class="text-muted">Category</td>
+                            <td class="text-end">{% if ticket.category %}{{ ticket.category.name }}{% else %}—{% endif %}</td></tr>
+                        <tr><td class="text-muted">Assigned To</td>
+                            <td class="text-end">
+                                {% if ticket.assigned_to %}{{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}
+                                {% else %}<span class="badge bg-warning text-dark">Unassigned</span>{% endif %}
+                            </td></tr>
+                        <tr><td class="text-muted">Created</td><td class="text-end small">{{ ticket.created_at|date:"M d, Y H:i" }}</td></tr>
+                        <tr><td class="text-muted">Updated</td><td class="text-end small">{{ ticket.updated_at|date:"M d, Y H:i" }}</td></tr>
+                        {% if ticket.resolved_at %}<tr><td class="text-muted">Resolved</td><td class="text-end small">{{ ticket.resolved_at|date:"M d, Y H:i" }}</td></tr>{% endif %}
+                        {% if ticket.closed_at %}<tr><td class="text-muted">Closed</td><td class="text-end small">{{ ticket.closed_at|date:"M d, Y H:i" }}</td></tr>{% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Support Actions -->
+        {% if is_support %}
+        <div class="card mb-3">
+            <div class="card-header bg-white"><h6 class="mb-0">Support Actions</h6></div>
+            <div class="card-body">
+                <!-- Assign -->
+                <form method="post" action="{% url 'helpdesk:ticket_assign' ticket.id %}" class="mb-3">
+                    {% csrf_token %}
+                    <label class="form-label small"><strong>Assign to</strong></label>
+                    <div class="input-group input-group-sm">
+                        <select name="assigned_to" class="form-select">
+                            <option value="">— Select support staff —</option>
+                            {% for u in support_users %}
+                            <option value="{{ u.id }}" {% if ticket.assigned_to_id == u.id %}selected{% endif %}>
+                                {{ u.get_full_name|default:u.username }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button class="btn btn-primary">Assign</button>
+                    </div>
+                </form>
+
+                <!-- Status + Priority -->
+                <form method="post" action="{% url 'helpdesk:ticket_update_status' ticket.id %}" class="mb-3">
+                    {% csrf_token %}
+                    <label class="form-label small"><strong>Status</strong></label>
+                    <select name="status" class="form-select form-select-sm mb-2">
+                        {% for value, label in ticket.STATUS_CHOICES %}
+                        <option value="{{ value }}" {% if ticket.status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <label class="form-label small"><strong>Priority</strong></label>
+                    <select name="priority" class="form-select form-select-sm mb-2">
+                        {% for value, label in ticket.PRIORITY_CHOICES %}
+                        <option value="{{ value }}" {% if ticket.priority == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <button class="btn btn-sm btn-outline-primary w-100">Update</button>
+                </form>
+
+                <!-- Resolve -->
+                {% if ticket.status != 'resolved' and ticket.status != 'closed' %}
+                <hr>
+                <form method="post" action="{% url 'helpdesk:ticket_resolve' ticket.id %}">
+                    {% csrf_token %}
+                    <label class="form-label small"><strong>Resolution Summary *</strong></label>
+                    <textarea name="resolution_summary" class="form-control form-control-sm" rows="3"
+                              placeholder="What was the cause and what did you do?"></textarea>
+                    <button class="btn btn-success btn-sm w-100 mt-2">
+                        <i class="bi bi-check-lg me-1"></i>Mark as Resolved
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Employee card -->
+        <div class="card mb-3">
+            <div class="card-header bg-white"><h6 class="mb-0">Employee</h6></div>
+            <div class="card-body text-center">
+                <i class="bi bi-person-circle text-primary" style="font-size: 3rem;"></i>
+                <h6 class="mt-2 mb-0">{{ ticket.employee.get_full_name|default:ticket.employee.username }}</h6>
+                <p class="text-muted small mb-1">@{{ ticket.employee.username }}</p>
+                {% if ticket.employee.email %}<p class="small mb-1"><i class="bi bi-envelope me-1"></i>{{ ticket.employee.email }}</p>{% endif %}
+                {% if ticket.employee.profile.department %}<p class="small text-muted mb-0"><i class="bi bi-building me-1"></i>{{ ticket.employee.profile.department }}</p>{% endif %}
+            </div>
+        </div>
+
+        <!-- Feedback display (if exists) -->
+        {% if ticket.feedback %}
+        <div class="card mb-3">
+            <div class="card-header bg-white"><h6 class="mb-0"><i class="bi bi-star-fill text-warning me-1"></i>Feedback</h6></div>
+            <div class="card-body">
+                <div class="mb-2">
+                    {% for i in "12345" %}
+                        {% if forloop.counter <= ticket.feedback.rating %}
+                            <i class="bi bi-star-fill text-warning"></i>
+                        {% else %}
+                            <i class="bi bi-star text-muted"></i>
+                        {% endif %}
+                    {% endfor %}
+                    <strong class="ms-2">{{ ticket.feedback.rating }}/5</strong>
+                </div>
+                {% if ticket.feedback.comment %}
+                <p class="small mb-0">{{ ticket.feedback.comment }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

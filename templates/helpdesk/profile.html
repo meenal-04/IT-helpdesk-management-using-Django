@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile - IT Helpdesk{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-person-circle text-primary" style="font-size: 4rem;"></i>
+                <h4 class="mt-2 mb-1">{{ user.get_full_name|default:user.username }}</h4>
+                <p class="text-muted mb-2">@{{ user.username }}</p>
+                <span class="badge bg-secondary">
+                    {{ user.profile.get_role_display }}
+                </span>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Actions</h6>
+                <a href="{% url 'helpdesk:password_change' %}" class="btn btn-outline-secondary w-100 mb-2">
+                    <i class="bi bi-key me-1"></i>Change Password
+                </a>
+                <a href="{% url 'helpdesk:dashboard' %}" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-speedometer2 me-1"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Edit Profile</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">First Name</label>
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}
+                            <div class="text-danger small">{{ form.first_name.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Last Name</label>
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}
+                            <div class="text-danger small">{{ form.last_name.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                        <div class="text-danger small">{{ form.email.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone</label>
+                            {{ form.phone }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Department</label>
+                            {{ form.department }}
+                        </div>
+                    </div>
+
+                                        <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Save & Return to Dashboard
+                        </button>
+                        <a href="{% url 'helpdesk:dashboard' %}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

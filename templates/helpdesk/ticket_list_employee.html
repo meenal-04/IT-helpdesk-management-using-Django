@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}My Tickets - IT Helpdesk{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0"><i class="bi bi-ticket-perforated me-2"></i>My Tickets</h2>
+        <p class="text-muted mb-0">All support tickets you have created</p>
+    </div>
+        {% if user.profile.role == 'employee' %}
+    <a href="{% url 'helpdesk:ticket_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i>New Ticket
+    </a>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        {% if tickets %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 70px;">ID</th>
+                        <th>Subject</th>
+                        <th>Category</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Assigned To</th>
+                        <th>Created</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in tickets %}
+                    <tr>
+                        <td class="fw-bold">#{{ ticket.id }}</td>
+                        <td>
+                            <a href="{% url 'helpdesk:ticket_detail' ticket.id %}"
+                               class="text-decoration-none fw-semibold">
+                                {{ ticket.subject|truncatechars:60 }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if ticket.category %}
+                                <span class="badge bg-light text-dark border">
+                                    {{ ticket.category.name }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {{ ticket.priority_badge_class }}">
+                                {{ ticket.get_priority_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge {{ ticket.status_badge_class }}">
+                                {{ ticket.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if ticket.assigned_to %}
+                                {{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}
+                            {% else %}
+                                <span class="text-muted small">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted small">
+                            {{ ticket.created_at|date:"M d, Y" }}<br>
+                            <span class="text-muted">{{ ticket.created_at|date:"H:i" }}</span>
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'helpdesk:ticket_detail' ticket.id %}"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye me-1"></i>View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+            <h4 class="mt-3">No tickets yet</h4>
+            <p class="text-muted">
+                You haven't created any support tickets. When you have an issue,
+                click the button below to get help from IT.
+            </p>
+            {% if user.profile.role == 'employee' %}
+            <a href="{% url 'helpdesk:ticket_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>Create Your First Ticket
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

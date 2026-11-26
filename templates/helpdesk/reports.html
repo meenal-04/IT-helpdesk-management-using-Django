@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports - IT Helpdesk{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Reports & Analytics</h2>
+        <p class="text-muted mb-0">Overview of helpdesk performance</p>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-lg-3">
+        <div class="card stat-card h-100"><div class="card-body">
+            <div class="text-muted small text-uppercase">Total Tickets</div>
+            <div class="fs-3 fw-bold">{{ total_tickets }}</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+        <div class="card stat-card info h-100"><div class="card-body">
+            <div class="text-muted small text-uppercase">Open Now</div>
+            <div class="fs-3 fw-bold">{{ open_now }}</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+        <div class="card stat-card danger h-100"><div class="card-body">
+            <div class="text-muted small text-uppercase">Critical Open</div>
+            <div class="fs-3 fw-bold">{{ critical_open }}</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+        <div class="card stat-card success h-100"><div class="card-body">
+            <div class="text-muted small text-uppercase">Resolved This Month</div>
+            <div class="fs-3 fw-bold">{{ resolved_this_month }}</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+        <div class="card stat-card h-100"><div class="card-body">
+            <div class="text-muted small text-uppercase">Avg Resolution Time</div>
+            <div class="fs-3 fw-bold">{{ avg_resolution_display }}</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+        <div class="card stat-card warning h-100"><div class="card-body">
+            <div class="text-muted small text-uppercase">Average Rating</div>
+            <div class="fs-3 fw-bold">{{ avg_rating }} <span class="fs-6 text-muted">/ 5</span></div>
+        </div></div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <h6 class="card-title">Tickets by Status</h6>
+            <canvas id="statusChart" height="200"></canvas>
+        </div></div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <h6 class="card-title">Tickets by Priority</h6>
+            <canvas id="priorityChart" height="200"></canvas>
+        </div></div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <h6 class="card-title">Tickets by Category</h6>
+            <canvas id="categoryChart" height="200"></canvas>
+        </div></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    const statusLabels = {{ by_status_labels|safe }};
+    const statusValues = {{ by_status_values|safe }};
+    const priorityLabels = {{ by_priority_labels|safe }};
+    const priorityValues = {{ by_priority_values|safe }};
+    const categoryLabels = {{ by_category_labels|safe }};
+    const categoryValues = {{ by_category_values|safe }};
+
+    new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: statusLabels,
+            datasets: [{
+                data: statusValues,
+                backgroundColor: ['#0d6efd', '#6f42c1', '#ffc107', '#fd7e14', '#198754', '#212529']
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    new Chart(document.getElementById('priorityChart'), {
+        type: 'bar',
+        data: {
+            labels: priorityLabels,
+            datasets: [{
+                data: priorityValues,
+                backgroundColor: ['#6c757d', '#0dcaf0', '#fd7e14', '#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
+
+    new Chart(document.getElementById('categoryChart'), {
+        type: 'bar',
+        data: {
+            labels: categoryLabels,
+            datasets: [{
+                data: categoryValues,
+                backgroundColor: '#0d6efd'
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
+</script>
+{% endblock %}
